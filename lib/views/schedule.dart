@@ -47,19 +47,23 @@ class ScheduleScreen extends StatelessWidget {
                   ),
                   textAlign: TextAlign.center, // center align the month name
                 ),
+                viewHeaderStyle: ViewHeaderStyle(
+                  dayTextStyle: TextStyle(
+                    color: Colors.grey, // Color for past dates
+                  ),
+                ),
                 // ,initialDisplayDate: ,
                 //   initialSelectedDate:
               ),
             ),
           ),
-          //),
           SliverToBoxAdapter(
             child: SizedBox(height: 10), // Add SizedBox for spacing
           ),
           SliverToBoxAdapter(
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
+              children: [ 
                 Text(
                   'My Schedule:',
                   style: TextStyle(
