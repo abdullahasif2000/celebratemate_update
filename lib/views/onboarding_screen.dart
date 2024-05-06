@@ -45,7 +45,7 @@ class OnBoardingScreen extends StatelessWidget {
                 ),
                 SizedBox(height: 20),
                 Image.asset(
-                  'assets/CelebrateMate_logo_final.jpg',
+                  'assets/logo.png',
                   width: 100,
                   height: 100,
                 ),
@@ -146,11 +146,11 @@ class OnBoardingScreen extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         SignInButton(
-                          Buttons.facebook,
+                          Buttons.apple,
                           onPressed: () {
-                            // Add functionality for Facebook sign-in
-                            // Redirect to Facebook sign-in page
-                            // Example: Navigator.push(context, MaterialPageRoute(builder: (context) => FacebookSignInPage()));
+                            // Add functionality for Apple sign-in
+                            // Redirect to Apple sign-in page
+                            // Example: Navigator.push(context, MaterialPageRoute(builder: (context) => AppleSignInPage()));
                           },
                         ),
                       ],

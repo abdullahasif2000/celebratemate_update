@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'verification_screen.dart'; // Import the verification screen
 import 'forgetpassword_screen.dart'; // Import the forget password screen
+import 'onboarding_screen.dart';// Import the onboarding screen
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
@@ -36,7 +37,7 @@ class _LoginScreenState extends State<LoginScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
-                'Welcome back, user',
+                'Unlock Your Celebrations with CelebrateMate',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 24,
@@ -100,6 +101,56 @@ class _LoginScreenState extends State<LoginScreen> {
                   );
                 },
                 child: Text('Forgot Password?', style: TextStyle(color: Colors.red)), // Set text color to red
+              ),
+              SizedBox(height: 20), // Add space
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Expanded(
+                    child: Divider( // Add a horizontal line
+                      color: Colors.black, // Set line color to black
+                      thickness: 2, // Set line thickness
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                    child: Text(
+                      'If not a user already',
+                      style: TextStyle(
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: Divider( // Add a horizontal line
+                      color: Colors.black, // Set line color to black
+                      thickness: 2, // Set line thickness
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 10), // Add spacing between text and button
+              ElevatedButton(
+                onPressed: () {
+                  // Navigate to OnboardingScreen
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => OnBoardingScreen()),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.black, // Set button color to blue
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20.0), // Rounded button corners
+                  ),
+                ),
+                child: Text(
+                  'Sign up here',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.white, // Set button text color to white
+                  ),
+                ),
               ),
             ],
           ),
