@@ -2,12 +2,32 @@ import 'package:flutter/material.dart';
 import 'package:sign_in_button/sign_in_button.dart';
 import 'package:celebratemate/views/login_screen.dart';
 import 'adminlogin_screen.dart'; // Import your admin login screen
-
+import 'package:firebase_auth/firebase_auth.dart';
 class OnBoardingScreen extends StatelessWidget {
   const OnBoardingScreen({Key? key}) : super(key: key);
+  // function for handling user signup
+  Future<void> signup(String email,String password,BuildContext context)async{
+    try{
+      await FirebaseAuth.instance.createUserWithEmailAndPassword
+        (email: email,
+          password: password
+      );
+      // navigate to login screen after successful signup
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context)=> LoginScreen()),
+      );
+    }
+    catch(e){
+      // handling signup errors
+      print('Failed to sign up:$e');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    String email ='';
+    String password ='';
     return SafeArea(
       child: Scaffold(
         body: SingleChildScrollView(
@@ -59,8 +79,9 @@ class OnBoardingScreen extends StatelessWidget {
                 ),
                 SizedBox(height: 20),
                 TextField(
+                  onChanged: (value)=>email=value,
                   decoration: InputDecoration(
-                    hintText: "Username",
+                    hintText: "Email",
                     hintStyle: TextStyle(color: Colors.white), // Hint text color
                   ),
                   style: TextStyle(
@@ -70,17 +91,7 @@ class OnBoardingScreen extends StatelessWidget {
                 ),
                 SizedBox(height: 10),
                 TextField(
-                  decoration: InputDecoration(
-                    hintText: "Email/Mobile No.",
-                    hintStyle: TextStyle(color: Colors.white), // Hint text color
-                  ),
-                  style: TextStyle(
-                    color: Colors.white, // Text color
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                SizedBox(height: 10),
-                TextField(
+                  onChanged: (value)=> password = value,
                   decoration: InputDecoration(
                     hintText: "Password",
                     hintStyle: TextStyle(color: Colors.white), // Hint text color
@@ -95,13 +106,7 @@ class OnBoardingScreen extends StatelessWidget {
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: () {
-                      // Add functionality to continue button
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => LoginScreen()),
-                      );
-                    },
+                    onPressed: () => signup(email, password, context), // Call the signUp function
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.blue,
                       shape: RoundedRectangleBorder(
