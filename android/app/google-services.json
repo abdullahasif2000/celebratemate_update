@@ -1,13 +1,13 @@
 {
   "project_info": {
-    "project_number": "1045456349029",
-    "project_id": "celebratemate-app-e75d7",
-    "storage_bucket": "celebratemate-app-e75d7.appspot.com"
+    "project_number": "843369016489",
+    "project_id": "celebratemate-d8420",
+    "storage_bucket": "celebratemate-d8420.appspot.com"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:1045456349029:android:9f455453fdb1e92759a38c",
+        "mobilesdk_app_id": "1:843369016489:android:16ba243faf6052e7718db8",
         "android_client_info": {
           "package_name": "com.example.celebratemate"
         }
@@ -15,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyBHvYWhU-UFxc4GTC53utvXufbzaZHIyTA"
+          "current_key": "AIzaSyAyXi_5gIHLl9r-ZRqFJc0osdeqeGSvNic"
         }
       ],
       "services": {

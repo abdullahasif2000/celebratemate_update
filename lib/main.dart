@@ -2,8 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:celebratemate/views/onboarding_screen.dart';
 import 'package:celebratemate/views/login_screen.dart';
 import 'package:celebratemate/views/logo_screen.dart'; // Import the LogoScreen
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 
-void main() {
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+  );
   runApp(const MyApp());
 }
 
