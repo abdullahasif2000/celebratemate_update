@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:celebratemate/views/login_screen.dart'; // Import the LoginScreen
 import 'booking_screen2.dart'; // Import the booking screen
 
 class HomeScreen extends StatelessWidget {
@@ -10,13 +12,21 @@ class HomeScreen extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: Colors.blue, // Set background color to blue
         title: Text(
-          'home_screen',
+          'Home',
           style: TextStyle(
             color: Colors.white, // Set text color to white
             fontWeight: FontWeight.bold,
           ),
         ),
         centerTitle: true,
+        actions: [
+          IconButton(
+            onPressed: () {
+              _signOut(context); // Call the signOut method when the button is pressed
+            },
+            icon: Icon(Icons.logout),
+          ),
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -179,5 +189,20 @@ class HomeScreen extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  // Sign out method
+  void _signOut(BuildContext context) async {
+    try {
+      // Sign out the current user
+      await FirebaseAuth.instance.signOut();
+      // Navigate back to the login screen
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (context) => LoginScreen()),
+      );
+    } catch (e) {
+      // Handle sign-out errors
+      print('Error signing out: $e');
+    }
   }
 }
