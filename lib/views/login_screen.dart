@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'verification_screen.dart'; // Import the verification screen
 import 'forgetpassword_screen.dart'; // Import the forget password screen
 import 'onboarding_screen.dart';// Import the onboarding screen
+import 'package:firebase_auth/firebase_auth.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
@@ -11,8 +12,35 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  TextEditingController _usernameController = TextEditingController();
+  TextEditingController _emailController = TextEditingController();
   TextEditingController _passwordController = TextEditingController();
+
+  // funtion to handle user login
+  Future<void> login(BuildContext context) async{
+    try{
+      UserCredential userCredential=await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: _emailController.text,
+        password: _passwordController.text,
+
+      );
+      // Navigate to the varification screen or nay other screen upon successful login
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context)=>VerificationScreen()),
+      );
+    }
+    on FirebaseAuthException catch(e){
+      if (e.code =='user-not-found'){
+        print('No user found for that email');
+      }
+      else if (e.code == 'wrong-password'){
+        print('Wrong password provided with that user');
+      }
+    }
+    catch(e){
+      print(e);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -55,9 +83,9 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               SizedBox(height: 30),
               TextField(
-                controller: _usernameController,
+                controller: _emailController,
                 decoration: InputDecoration(
-                  labelText: 'Username',
+                  labelText: 'Email',
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10.0), // Rounded border
                   ),
@@ -76,13 +104,7 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               SizedBox(height: 20),
               ElevatedButton(
-                onPressed: () {
-                  // Navigate to the verification screen
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => VerificationScreen()),
-                  );
-                },
+                onPressed: ()=> login(context),//call the login function
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.blue,
                   shape: RoundedRectangleBorder(
