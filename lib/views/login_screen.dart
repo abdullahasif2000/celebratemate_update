@@ -1,8 +1,11 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'verification_screen.dart'; // Import the verification screen
 import 'forgetpassword_screen.dart'; // Import the forget password screen
 import 'onboarding_screen.dart';// Import the onboarding screen
 import 'package:firebase_auth/firebase_auth.dart';
+import 'adminlogin_screen.dart';
+import 'enterdetail_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
@@ -23,6 +26,23 @@ class _LoginScreenState extends State<LoginScreen> {
         password: _passwordController.text,
 
       );
+      // retrieve user role from firestore
+      DocumentSnapshot userDoc = await FirebaseFirestore.instance.collection('users').doc(userCredential.user!.uid).get();
+      String role = userDoc['role'];
+      if (role =='admin'){
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => EnterDetailScreen()),
+        );
+      }
+      else{
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => VerificationScreen()),
+        );
+      }
+      }
+      on FirebaseAuthException catch(e) {
       // Navigate to the varification screen or nay other screen upon successful login
       Navigator.push(
         context,
@@ -173,6 +193,24 @@ class _LoginScreenState extends State<LoginScreen> {
                     color: Colors.white, // Set button text color to white
                   ),
                 ),
+              ),
+              SizedBox(height: 10),
+              Text(
+                'Admin?',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => AdminLoginScreen()),
+                  );
+                },
+                child: Text('Admin Login', style: TextStyle(color: Colors.blue)),
               ),
             ],
           ),

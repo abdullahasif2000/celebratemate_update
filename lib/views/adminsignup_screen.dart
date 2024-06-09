@@ -1,8 +1,59 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart'; // Import for input formatters
+import 'package:flutter/services.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'adminverification_screen.dart'; // Import the AdminVerificationScreen widget
 
-class AdminSignUpScreen extends StatelessWidget {
+class AdminSignUpScreen extends StatefulWidget {
+  @override
+  _AdminSignUpScreenState createState() => _AdminSignUpScreenState();
+}
+
+class _AdminSignUpScreenState extends State<AdminSignUpScreen> {
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  TextEditingController _usernameController = TextEditingController();
+  TextEditingController _emailController = TextEditingController();
+  TextEditingController _phoneController = TextEditingController();
+  TextEditingController _passwordController = TextEditingController();
+  TextEditingController _confirmPasswordController = TextEditingController();
+
+  Future<void> signUpAdmin() async {
+    if (_passwordController.text != _confirmPasswordController.text) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Passwords do not match")),
+      );
+      return;
+    }
+
+    try {
+      UserCredential userCredential = await _auth.createUserWithEmailAndPassword(
+        email: _emailController.text,
+        password: _passwordController.text,
+      );
+
+      User? user = userCredential.user;
+      if (user != null) {
+        await _firestore.collection('users').doc(user.uid).set({
+          'username': _usernameController.text,
+          'email': _emailController.text,
+          'phone': _phoneController.text,
+          'role': 'admin',
+        });
+
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => AdminVerificationScreen()),
+        );
+      }
+    } on FirebaseAuthException catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message ?? 'An error occurred')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -10,12 +61,12 @@ class AdminSignUpScreen extends StatelessWidget {
         title: Text(
           'Admin Sign Up',
           style: TextStyle(
-            color: Colors.white, // Set text color to white
-            fontWeight: FontWeight.bold, // Set text weight to bold
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
           ),
         ),
-        backgroundColor: Colors.blueGrey, // Set app bar color to blue
-        centerTitle: true, // Center align the title
+        backgroundColor: Colors.blueGrey,
+        centerTitle: true,
       ),
       body: Padding(
         padding: EdgeInsets.all(20.0),
@@ -24,14 +75,14 @@ class AdminSignUpScreen extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               SizedBox(height: 20),
-              Image.asset( // Image added above the text fields
-                'assets/CelebrateMate_Exclusive.jpg', // Provide the path to your image
+              Image.asset(
+                'assets/CelebrateMate_Exclusive.jpg',
                 width: 150,
                 height: 150,
               ),
               SizedBox(height: 10),
               Text(
-                'This page is only for representatives!', // Text added below the image
+                'This page is only for representatives!',
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
@@ -40,6 +91,7 @@ class AdminSignUpScreen extends StatelessWidget {
               ),
               SizedBox(height: 20),
               TextField(
+                controller: _usernameController,
                 decoration: InputDecoration(
                   hintText: 'Username',
                   border: OutlineInputBorder(
@@ -49,6 +101,7 @@ class AdminSignUpScreen extends StatelessWidget {
               ),
               SizedBox(height: 10),
               TextField(
+                controller: _emailController,
                 decoration: InputDecoration(
                   hintText: 'Email',
                   border: OutlineInputBorder(
@@ -58,8 +111,9 @@ class AdminSignUpScreen extends StatelessWidget {
               ),
               SizedBox(height: 10),
               TextField(
-                keyboardType: TextInputType.phone, // Set keyboard type to phone
-                inputFormatters: [FilteringTextInputFormatter.digitsOnly], // Accept only numeric input
+                controller: _phoneController,
+                keyboardType: TextInputType.phone,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                 decoration: InputDecoration(
                   hintText: 'Phone Number',
                   border: OutlineInputBorder(
@@ -69,6 +123,7 @@ class AdminSignUpScreen extends StatelessWidget {
               ),
               SizedBox(height: 10),
               TextField(
+                controller: _passwordController,
                 decoration: InputDecoration(
                   hintText: 'Password',
                   border: OutlineInputBorder(
@@ -79,6 +134,7 @@ class AdminSignUpScreen extends StatelessWidget {
               ),
               SizedBox(height: 10),
               TextField(
+                controller: _confirmPasswordController,
                 decoration: InputDecoration(
                   hintText: 'Confirm Password',
                   border: OutlineInputBorder(
@@ -89,15 +145,9 @@ class AdminSignUpScreen extends StatelessWidget {
               ),
               SizedBox(height: 20),
               ElevatedButton(
-                onPressed: () {
-                  // Redirect to AdminVerificationScreen
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => AdminVerificationScreen()),
-                  );
-                },
+                onPressed: signUpAdmin,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.black, // Set button color to black
+                  backgroundColor: Colors.black,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(20.0),
                   ),

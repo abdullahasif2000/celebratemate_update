@@ -1,33 +1,36 @@
 import 'package:flutter/material.dart';
 import 'package:sign_in_button/sign_in_button.dart';
 import 'package:celebratemate/views/login_screen.dart';
-import 'adminlogin_screen.dart'; // Import your admin login screen
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+
+
 class OnBoardingScreen extends StatelessWidget {
   const OnBoardingScreen({Key? key}) : super(key: key);
-  // function for handling user signup
-  Future<void> signup(String email,String password,BuildContext context)async{
-    try{
-      await FirebaseAuth.instance.createUserWithEmailAndPassword
-        (email: email,
-          password: password
+
+  Future<void> signup(String email, String password, BuildContext context) async {
+    try {
+      await FirebaseAuth.instance.createUserWithEmailAndPassword(email: email, password: password);
+      // Store user role in Firestore
+      await FirebaseFirestore.instance.collection('users').doc(FirebaseAuth.instance.currentUser!.uid).set({
+        'role': 'user',
+      });
+      // Navigate to a different screen or show a confirmation message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Account created successfully')),
       );
-      // navigate to login screen after successful signup
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context)=> LoginScreen()),
+    } catch (e) {
+      // Display error message to the user
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to sign up: $e')),
       );
-    }
-    catch(e){
-      // handling signup errors
-      print('Failed to sign up:$e');
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    String email ='';
-    String password ='';
+    String email = '';
+    String password = '';
     return SafeArea(
       child: Scaffold(
         body: SingleChildScrollView(
@@ -38,7 +41,7 @@ class OnBoardingScreen extends StatelessWidget {
               image: DecorationImage(
                 image: AssetImage('assets/background7.jpg'),
                 fit: BoxFit.cover,
-                colorFilter: ColorFilter.mode(Colors.blue.withOpacity(0.9), BlendMode.colorBurn), // Customize color and blend mode
+                colorFilter: ColorFilter.mode(Colors.blue.withOpacity(0.9), BlendMode.colorBurn),
               ),
             ),
             child: Column(
@@ -79,26 +82,26 @@ class OnBoardingScreen extends StatelessWidget {
                 ),
                 SizedBox(height: 20),
                 TextField(
-                  onChanged: (value)=>email=value,
+                  onChanged: (value) => email = value,
                   decoration: InputDecoration(
                     hintText: "Email",
-                    hintStyle: TextStyle(color: Colors.white), // Hint text color
+                    hintStyle: TextStyle(color: Colors.white),
                   ),
                   style: TextStyle(
-                    color: Colors.white, // Text color
+                    color: Colors.white,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
                 SizedBox(height: 10),
                 TextField(
-                  onChanged: (value)=> password = value,
+                  onChanged: (value) => password = value,
                   decoration: InputDecoration(
                     hintText: "Password",
-                    hintStyle: TextStyle(color: Colors.white), // Hint text color
+                    hintStyle: TextStyle(color: Colors.white),
                   ),
                   obscureText: true,
                   style: TextStyle(
-                    color: Colors.white, // Text color
+                    color: Colors.white,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -106,7 +109,7 @@ class OnBoardingScreen extends StatelessWidget {
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: () => signup(email, password, context), // Call the signUp function
+                    onPressed: () => signup(email, password, context),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.blue,
                       shape: RoundedRectangleBorder(
@@ -140,8 +143,6 @@ class OnBoardingScreen extends StatelessWidget {
                           Buttons.google,
                           onPressed: () {
                             // Add functionality for Google sign-in
-                            // Redirect to Google sign-in page
-                            // Example: Navigator.push(context, MaterialPageRoute(builder: (context) => GoogleSignInPage()));
                           },
                         ),
                       ],
@@ -154,22 +155,9 @@ class OnBoardingScreen extends StatelessWidget {
                           Buttons.apple,
                           onPressed: () {
                             // Add functionality for Apple sign-in
-                            // Redirect to Apple sign-in page
-                            // Example: Navigator.push(context, MaterialPageRoute(builder: (context) => AppleSignInPage()));
                           },
                         ),
                       ],
-                    ),
-                    SizedBox(height: 10),
-                    ElevatedButton(
-                      onPressed: () {
-                        // Redirect to login screen
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => LoginScreen()),
-                        );
-                      },
-                      child: Text('Next'),
                     ),
                   ],
                 ),
@@ -177,23 +165,7 @@ class OnBoardingScreen extends StatelessWidget {
             ),
           ),
         ),
-        floatingActionButton: FloatingActionButton(
-          onPressed: () {
-            // Navigate to admin login screen
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => AdminLoginScreen()),
-            );
-          },
-          child: Icon(Icons.person),
-        ),
       ),
     );
   }
-}
-
-void main() {
-  runApp(MaterialApp(
-    home: OnBoardingScreen(),
-  ));
 }

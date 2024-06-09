@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'reviewinginfo_screen.dart';
+import 'VenueDetailsScreen.dart'; // Import the VenueDetailsScreen
+import 'login_screen.dart'; // Import the LoginScreen (or whatever your login screen is called)
+import 'package:firebase_auth/firebase_auth.dart'; // Import Firebase Auth
 
 class EnterDetailScreen extends StatefulWidget {
   @override
@@ -13,16 +17,78 @@ class _EnterDetailScreenState extends State<EnterDetailScreen> {
   TextEditingController _representativeController = TextEditingController();
   TextEditingController _phoneNumberController = TextEditingController();
   TextEditingController _servicesController = TextEditingController();
-  TextEditingController _locationController = TextEditingController(); // Controller for location
+  TextEditingController _locationController = TextEditingController();
 
   List<String> _pictures = [];
   double _stars = 0;
   bool _valetParkingAvailable = false;
+  String _documentId = '';
+
+  final CollectionReference venuesCollection = FirebaseFirestore.instance.collection('venues');
 
   void _addPicture() {
     setState(() {
       _pictures.add("https://via.placeholder.com/150");
     });
+  }
+
+  void _saveVenue() {
+    final venueData = {
+      'name': _nameController.text,
+      'description': _descriptionController.text,
+      'representative': _representativeController.text,
+      'phoneNumber': _phoneNumberController.text,
+      'services': _servicesController.text,
+      'stars': _stars,
+      'valetParking': _valetParkingAvailable,
+      'location': _locationController.text,
+      'pictures': _pictures,
+    };
+
+    if (_documentId.isEmpty) {
+      venuesCollection.add(venueData).then((_) {
+        print('Venue saved successfully!');
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => ReviewingInfoScreen()),
+        );
+      }).catchError((error) {
+        print('Failed to save venue: $error');
+      });
+    } else {
+      venuesCollection.doc(_documentId).update(venueData).then((_) {
+        print('Venue updated successfully!');
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => ReviewingInfoScreen()),
+        );
+      }).catchError((error) {
+        print('Failed to update venue: $error');
+      });
+    }
+  }
+
+  void _deleteVenue() {
+    if (_documentId.isNotEmpty) {
+      venuesCollection.doc(_documentId).delete().then((_) {
+        print('Venue deleted successfully!');
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => ReviewingInfoScreen()),
+        );
+      }).catchError((error) {
+        print('Failed to delete venue: $error');
+      });
+    }
+  }
+
+  void _logout() async {
+    await FirebaseAuth.instance.signOut();
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (context) => LoginScreen()),
+          (Route<dynamic> route) => false,
+    );
   }
 
   Widget _buildPictureWidget(String imageUrl) {
@@ -54,8 +120,33 @@ class _EnterDetailScreenState extends State<EnterDetailScreen> {
     );
   }
 
+  void _loadVenueData(String documentId) {
+    venuesCollection.doc(documentId).get().then((DocumentSnapshot doc) {
+      if (doc.exists) {
+        var data = doc.data() as Map<String, dynamic>;
+        setState(() {
+          _documentId = documentId;
+          _nameController.text = data['name'] ?? '';
+          _descriptionController.text = data['description'] ?? '';
+          _representativeController.text = data['representative'] ?? '';
+          _phoneNumberController.text = data['phoneNumber'] ?? '';
+          _servicesController.text = data['services'] ?? '';
+          _stars = data['stars'] ?? 0;
+          _valetParkingAvailable = data['valetParking'] ?? false;
+          _locationController.text = data['location'] ?? '';
+          _pictures = List<String>.from(data['pictures'] ?? []);
+        });
+      }
+    }).catchError((error) {
+      print('Failed to load venue data: $error');
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
+    // Uncomment this line to load venue data for a specific document
+    // _loadVenueData('your-document-id');
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.blueGrey,
@@ -67,6 +158,21 @@ class _EnterDetailScreenState extends State<EnterDetailScreen> {
           ),
         ),
         centerTitle: true,
+        leading: IconButton(
+          icon: Icon(Icons.logout),
+          onPressed: _logout,
+        ),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.list),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => VenueDetailsScreen()),
+              );
+            },
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         padding: EdgeInsets.all(16.0),
@@ -245,7 +351,7 @@ class _EnterDetailScreenState extends State<EnterDetailScreen> {
               ),
             ),
             SizedBox(height: 8.0),
-            TextField( // Text field for entering location
+            TextField(
               controller: _locationController,
               decoration: InputDecoration(
                 labelText: 'Enter your address',
@@ -258,8 +364,8 @@ class _EnterDetailScreenState extends State<EnterDetailScreen> {
             ),
             SizedBox(height: 8.0),
             Container(
-              height: 200, // Adjust the height as needed
-              color: Colors.grey[200], // Placeholder color for the map
+              height: 200,
+              color: Colors.grey[200],
               child: Center(
                 child: Text(
                   'Map',
@@ -272,17 +378,23 @@ class _EnterDetailScreenState extends State<EnterDetailScreen> {
             ),
             SizedBox(height: 16.0),
             ElevatedButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => ReviewingInfoScreen()),
-                );
-              },
+              onPressed: _saveVenue,
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.black,
               ),
               child: Text(
                 'Save',
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+            SizedBox(height: 16.0),
+            ElevatedButton(
+              onPressed: _deleteVenue,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+              ),
+              child: Text(
+                'Delete',
                 style: TextStyle(color: Colors.white),
               ),
             ),

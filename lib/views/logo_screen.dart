@@ -1,38 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:celebratemate/views/login_screen.dart'; // Import the LoginScreen
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:celebratemate/views/home_screen.dart'; // Import the HomeScreen or any other screen for logged-in users
-class LogoScreen extends StatefulWidget {
-  @override
-  _LogoScreenState createState() => _LogoScreenState();
-}
-class _LogoScreenState extends State<LogoScreen>{
-  @override
-  void initState() {
-    super.initState();
-    Future.delayed(Duration.zero,() {
-      //call the checkuserloggedin function when the screen initializes
-      checkUserLoggedIn();
-    });
 
-  }
-  void checkUserLoggedIn() async{
-    // Get the current user from FirebaseAuth instance
-    User? user=FirebaseAuth.instance.currentUser;
-    if(user != null){
-      // If user is logged in, navigate to the HomeScreen
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (BuildContext context) => HomeScreen()),
-      );
-    }
-    else{
-      // If user is not logged in, navigate to the LoginScreen
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (BuildContext context) => LoginScreen()),
-      );
-
-    }
-  }
+class LogoScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
