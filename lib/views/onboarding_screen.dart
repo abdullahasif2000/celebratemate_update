@@ -4,23 +4,31 @@ import 'package:celebratemate/views/login_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-
 class OnBoardingScreen extends StatelessWidget {
   const OnBoardingScreen({Key? key}) : super(key: key);
 
   Future<void> signup(String email, String password, BuildContext context) async {
     try {
-      await FirebaseAuth.instance.createUserWithEmailAndPassword(email: email, password: password);
-      // Store user role in Firestore
-      await FirebaseFirestore.instance.collection('users').doc(FirebaseAuth.instance.currentUser!.uid).set({
+      // Create user with email and password
+      await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+
+      // Store user role in Firestore under 'users' collection
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(FirebaseAuth.instance.currentUser!.uid)
+          .set({
         'role': 'user',
       });
-      // Navigate to a different screen or show a confirmation message
+
+      // Show success message
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Account created successfully')),
       );
     } catch (e) {
-      // Display error message to the user
+      // Show error message
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Failed to sign up: $e')),
       );
@@ -31,6 +39,7 @@ class OnBoardingScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     String email = '';
     String password = '';
+
     return SafeArea(
       child: Scaffold(
         body: SingleChildScrollView(
@@ -41,7 +50,10 @@ class OnBoardingScreen extends StatelessWidget {
               image: DecorationImage(
                 image: AssetImage('assets/background7.jpg'),
                 fit: BoxFit.cover,
-                colorFilter: ColorFilter.mode(Colors.blue.withOpacity(0.9), BlendMode.colorBurn),
+                colorFilter: ColorFilter.mode(
+                  Colors.blue.withOpacity(0.9),
+                  BlendMode.colorBurn,
+                ),
               ),
             ),
             child: Column(

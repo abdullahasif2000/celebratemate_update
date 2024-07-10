@@ -1,20 +1,51 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:celebratemate/views/login_screen.dart'; // Import the LoginScreen
-import 'booking_screen2.dart'; // Import the booking screen
+import 'package:celebratemate/views/login_screen.dart';
+import 'booking_screen2.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
+
+  @override
+  _HomeScreenState createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  TextEditingController _searchController = TextEditingController();
+  late Stream<QuerySnapshot> _venuesStream;
+  bool _isSearching = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _venuesStream = FirebaseFirestore.instance.collection('venues').snapshots();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.blue, // Set background color to blue
-        title: Text(
+        backgroundColor: Colors.blue,
+        title: _isSearching
+            ? TextField(
+          controller: _searchController,
+          decoration: InputDecoration(
+            hintText: 'Search venue...',
+            hintStyle: TextStyle(color: Colors.white),
+            border: InputBorder.none,
+          ),
+          style: TextStyle(color: Colors.white),
+          onChanged: (value) {
+            setState(() {
+              // Trigger rebuild to apply filter
+            });
+          },
+        )
+            : Text(
           'Home',
           style: TextStyle(
-            color: Colors.white, // Set text color to white
+            color: Colors.white,
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -22,7 +53,18 @@ class HomeScreen extends StatelessWidget {
         actions: [
           IconButton(
             onPressed: () {
-              _signOut(context); // Call the signOut method when the button is pressed
+              setState(() {
+                _isSearching = !_isSearching;
+                if (!_isSearching) {
+                  _searchController.clear();
+                }
+              });
+            },
+            icon: Icon(_isSearching ? Icons.close : Icons.search),
+          ),
+          IconButton(
+            onPressed: () {
+              _signOut(context);
             },
             icon: Icon(Icons.logout),
           ),
@@ -30,145 +72,106 @@ class HomeScreen extends StatelessWidget {
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Your Current Location',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey,
+        child: StreamBuilder<QuerySnapshot>(
+          stream: _venuesStream,
+          builder: (context, snapshot) {
+            if (snapshot.hasError) {
+              return Center(child: Text('Something went wrong: ${snapshot.error}'));
+            }
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return Center(child: CircularProgressIndicator());
+            }
+
+            final List<DocumentSnapshot> documents = snapshot.data?.docs ?? [];
+
+            if (documents.isEmpty) {
+              return Center(child: Text('No venues found'));
+            }
+
+            // Filtered venues based on search query
+            final filteredVenues = documents.where((venue) {
+              final name = venue['name'] as String? ?? '';
+              final query = _searchController.text.toLowerCase();
+              return name.toLowerCase().contains(query);
+            }).toList();
+
+            return ListView.builder(
+              itemCount: filteredVenues.length,
+              itemBuilder: (context, index) {
+                final data = filteredVenues[index].data() as Map<String, dynamic>;
+                return Card(
+                  margin: EdgeInsets.symmetric(vertical: 10, horizontal: 20),
+                  elevation: 3,
+                  child: ListTile(
+                    title: Text(
+                      data['name'] as String? ?? 'No Name',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SizedBox(height: 5),
+                        Text(data['description'] as String? ?? 'No Description'),
+                        SizedBox(height: 5),
+                        Text('Representative: ${data['representative'] as String? ?? 'N/A'}'),
+                        SizedBox(height: 5),
+                        Text('Phone Number: ${data['phoneNumber'] as String? ?? 'N/A'}'),
+                        SizedBox(height: 5),
+                        Text('Location: ${data['location'] as String? ?? 'N/A'}'),
+                        SizedBox(height: 5),
+                        Text('Services Offered: ${data['services'] as String? ?? 'N/A'}'),
+                        SizedBox(height: 5),
+                        Row(
+                          children: [
+                            Text(
+                              'Stars: ',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                            Icon(Icons.star, color: Colors.amber, size: 18),
+                            Text('${data['stars']?.toStringAsFixed(1) ?? 'N/A'}'),
+                          ],
                         ),
-                      ),
-                      SizedBox(height: 4),
-                      Text(
-                        'Korangi Creek, Karachi',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.blue, // Set text color to blue
+                        SizedBox(height: 5),
+                        Text(
+                          'Valet Parking: ${data['valetParking'] ?? false ? 'Available' : 'Not Available'}',
                         ),
-                      ),
-                    ],
-                  ),
-                ),
-                IconButton(
-                  onPressed: () {
-                    // Add notification bell logic here
-                  },
-                  icon: Icon(
-                    Icons.notifications,
-                    color: Colors.blue, // Set icon color to blue
-                  ),
-                ),
-              ],
-            ),
-            SizedBox(height: 20), // Add SizedBox to move down the "Search Venue" text
-            Column(
-              children: [
-                Container(
-                  height: 30, // Adjust the height as needed
-                  child: Text(
-                    'Search Venue',
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
+                        SizedBox(height: 5),
+                        Text(
+                          'Pictures:',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        SizedBox(height: 5),
+                        SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Row(
+                            children: (data['pictures'] as List<dynamic>?)
+                                ?.map((url) => Padding(
+                              padding: EdgeInsets.only(right: 5),
+                              child: Image.network(
+                                url as String,
+                                width: 100,
+                                height: 100,
+                                fit: BoxFit.cover,
+                              ),
+                            ))
+                                .toList() ??
+                                [],
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ),
-                SizedBox(height: 20), // Add SizedBox for spacing
-              ],
-            ),
-            SizedBox(height: 10), // Add SizedBox for spacing
-            Container(
-              padding: EdgeInsets.symmetric(horizontal: 12),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.grey),
-              ),
-              child: Row(
-                children: [
-                  IconButton(
-                    onPressed: () {
-                      // Add search logic here
-                    },
-                    icon: Icon(Icons.search),
-                  ),
-                  Expanded(
-                    child: TextField(
-                      decoration: InputDecoration(
-                        hintText: 'Search...',
-                        border: InputBorder.none,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            SizedBox(height: 10), // Add SizedBox for spacing
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Nearby your Location:',
-                  style: TextStyle(
-                    color: Colors.blue.shade900,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                TextButton(
-                  onPressed: () {
-                    // Add onPressed logic for See All button
-                  },
-                  child: Text(
-                    'See All',
-                    style: TextStyle(
-                      color: Colors.blue.shade900,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            SizedBox(height: 8), // Add SizedBox for spacing
-            Text(
-              'Add banquets or hotels data', // Your text here
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.black,
-              ),
-            ),
-            SizedBox(height: 20), // Add SizedBox for spacing
-            // Next button to navigate to booking_screen2.dart
-            Align(
-              alignment: Alignment.centerRight,
-              child: IconButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => BookingScreen2()),
-                  );
-                },
-                icon: Icon(Icons.arrow_forward),
-                iconSize: 40,
-                color: Colors.blue,
-              ),
-            ),
-          ],
+                );
+              },
+            );
+          },
         ),
       ),
       bottomNavigationBar: BottomNavigationBar(
-        backgroundColor: Colors.blue, // Set background color to blue
-        selectedItemColor: Colors.white, // Set selected item color to black
-        unselectedItemColor: Colors.white, // Set unselected item color to black
-        type: BottomNavigationBarType.fixed, // Ensure equal spacing
+        backgroundColor: Colors.blue,
+        selectedItemColor: Colors.white,
+        unselectedItemColor: Colors.white,
+        type: BottomNavigationBarType.fixed,
         items: [
           BottomNavigationBarItem(
             icon: Icon(Icons.home),
@@ -191,17 +194,13 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  // Sign out method
   void _signOut(BuildContext context) async {
     try {
-      // Sign out the current user
       await FirebaseAuth.instance.signOut();
-      // Navigate back to the login screen
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (context) => LoginScreen()),
       );
     } catch (e) {
-      // Handle sign-out errors
       print('Error signing out: $e');
     }
   }
