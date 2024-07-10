@@ -1,10 +1,13 @@
+import 'dart:io'; // For native platforms
+import 'dart:typed_data'; // For web
 import 'package:flutter/material.dart';
-import 'package:flutter_rating_bar/flutter_rating_bar.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'reviewinginfo_screen.dart';
-import 'VenueDetailsScreen.dart'; // Import the VenueDetailsScreen
-import 'login_screen.dart'; // Import the LoginScreen (or whatever your login screen is called)
-import 'package:firebase_auth/firebase_auth.dart'; // Import Firebase Auth
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter_rating_bar/flutter_rating_bar.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'VenueDetailsScreen.dart';
 
 class EnterDetailScreen extends StatefulWidget {
   @override
@@ -12,141 +15,90 @@ class EnterDetailScreen extends StatefulWidget {
 }
 
 class _EnterDetailScreenState extends State<EnterDetailScreen> {
-  TextEditingController _nameController = TextEditingController();
-  TextEditingController _descriptionController = TextEditingController();
-  TextEditingController _representativeController = TextEditingController();
-  TextEditingController _phoneNumberController = TextEditingController();
-  TextEditingController _servicesController = TextEditingController();
-  TextEditingController _locationController = TextEditingController();
-
-  List<String> _pictures = [];
-  double _stars = 0;
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _descriptionController = TextEditingController();
+  final TextEditingController _representativeController = TextEditingController();
+  final TextEditingController _phoneNumberController = TextEditingController();
+  final TextEditingController _servicesController = TextEditingController();
+  final TextEditingController _locationController = TextEditingController();
+  double _stars = 3.0;
   bool _valetParkingAvailable = false;
-  String _documentId = '';
+  List<String> _pictures = [];
 
-  final CollectionReference venuesCollection = FirebaseFirestore.instance.collection('venues');
-
-  void _addPicture() {
-    setState(() {
-      _pictures.add("https://via.placeholder.com/150");
-    });
-  }
-
-  void _saveVenue() {
-    final venueData = {
-      'name': _nameController.text,
-      'description': _descriptionController.text,
-      'representative': _representativeController.text,
-      'phoneNumber': _phoneNumberController.text,
-      'services': _servicesController.text,
-      'stars': _stars,
-      'valetParking': _valetParkingAvailable,
-      'location': _locationController.text,
-      'pictures': _pictures,
-    };
-
-    if (_documentId.isEmpty) {
-      venuesCollection.add(venueData).then((_) {
-        print('Venue saved successfully!');
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => ReviewingInfoScreen()),
-        );
-      }).catchError((error) {
-        print('Failed to save venue: $error');
-      });
-    } else {
-      venuesCollection.doc(_documentId).update(venueData).then((_) {
-        print('Venue updated successfully!');
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => ReviewingInfoScreen()),
-        );
-      }).catchError((error) {
-        print('Failed to update venue: $error');
-      });
-    }
-  }
-
-  void _deleteVenue() {
-    if (_documentId.isNotEmpty) {
-      venuesCollection.doc(_documentId).delete().then((_) {
-        print('Venue deleted successfully!');
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => ReviewingInfoScreen()),
-        );
-      }).catchError((error) {
-        print('Failed to delete venue: $error');
-      });
-    }
-  }
-
-  void _logout() async {
+  Future<void> _logout() async {
     await FirebaseAuth.instance.signOut();
-    Navigator.pushAndRemoveUntil(
-      context,
-      MaterialPageRoute(builder: (context) => LoginScreen()),
-          (Route<dynamic> route) => false,
-    );
+    Navigator.of(context).pushReplacementNamed('/login');
+  }
+
+  Future<void> _addPicture() async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+
+    if (pickedFile != null) {
+      String fileName = DateTime.now().millisecondsSinceEpoch.toString();
+      Reference storageRef = FirebaseStorage.instance.ref().child('venue_images/$fileName');
+
+      if (kIsWeb) {
+        // Web upload
+        Uint8List imageBytes = await pickedFile.readAsBytes();
+        UploadTask uploadTask = storageRef.putData(imageBytes);
+        TaskSnapshot snapshot = await uploadTask;
+        String downloadUrl = await snapshot.ref.getDownloadURL();
+        setState(() {
+          _pictures.add(downloadUrl);
+        });
+      } else {
+        // Native upload
+        File imageFile = File(pickedFile.path);
+        UploadTask uploadTask = storageRef.putFile(imageFile);
+        TaskSnapshot snapshot = await uploadTask;
+        String downloadUrl = await snapshot.ref.getDownloadURL();
+        setState(() {
+          _pictures.add(downloadUrl);
+        });
+      }
+    }
   }
 
   Widget _buildPictureWidget(String imageUrl) {
     return Stack(
       children: [
-        Image.network(
-          imageUrl,
-          width: 100,
-          height: 100,
-          fit: BoxFit.cover,
-        ),
-        Positioned(
-          top: 0,
-          right: 0,
-          child: GestureDetector(
-            onTap: _addPicture,
-            child: Container(
-              width: 30,
-              height: 30,
-              color: Colors.transparent,
-              child: Icon(
-                Icons.add,
-                color: Colors.white,
-              ),
-            ),
-          ),
-        ),
+        Image.network(imageUrl, width: 100, height: 100, fit: BoxFit.cover),
       ],
     );
   }
 
-  void _loadVenueData(String documentId) {
-    venuesCollection.doc(documentId).get().then((DocumentSnapshot doc) {
-      if (doc.exists) {
-        var data = doc.data() as Map<String, dynamic>;
-        setState(() {
-          _documentId = documentId;
-          _nameController.text = data['name'] ?? '';
-          _descriptionController.text = data['description'] ?? '';
-          _representativeController.text = data['representative'] ?? '';
-          _phoneNumberController.text = data['phoneNumber'] ?? '';
-          _servicesController.text = data['services'] ?? '';
-          _stars = data['stars'] ?? 0;
-          _valetParkingAvailable = data['valetParking'] ?? false;
-          _locationController.text = data['location'] ?? '';
-          _pictures = List<String>.from(data['pictures'] ?? []);
-        });
-      }
-    }).catchError((error) {
-      print('Failed to load venue data: $error');
+  Future<void> _saveVenue() async {
+    await FirebaseFirestore.instance.collection('venues').add({
+      'name': _nameController.text,
+      'description': _descriptionController.text,
+      'representative': _representativeController.text,
+      'phone_number': _phoneNumberController.text,
+      'services': _servicesController.text,
+      'location': _locationController.text,
+      'stars': _stars,
+      'valet_parking': _valetParkingAvailable,
+      'pictures': _pictures,
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Venue saved successfully!')));
+
+    // Clear form fields after saving
+    _nameController.clear();
+    _descriptionController.clear();
+    _representativeController.clear();
+    _phoneNumberController.clear();
+    _servicesController.clear();
+    _locationController.clear();
+    setState(() {
+      _stars = 3.0;
+      _valetParkingAvailable = false;
+      _pictures.clear();
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    // Uncomment this line to load venue data for a specific document
-    // _loadVenueData('your-document-id');
-
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.blueGrey,
@@ -157,12 +109,11 @@ class _EnterDetailScreenState extends State<EnterDetailScreen> {
             fontWeight: FontWeight.bold,
           ),
         ),
-        centerTitle: true,
-        leading: IconButton(
-          icon: Icon(Icons.logout),
-          onPressed: _logout,
-        ),
         actions: [
+          IconButton(
+            icon: Icon(Icons.logout),
+            onPressed: _logout,
+          ),
           IconButton(
             icon: Icon(Icons.list),
             onPressed: () {
@@ -178,16 +129,12 @@ class _EnterDetailScreenState extends State<EnterDetailScreen> {
         padding: EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: <Widget>[
+          children: [
             TextField(
               controller: _nameController,
               decoration: InputDecoration(
                 labelText: 'Venue Name',
-                labelStyle: TextStyle(
-                  color: Colors.black,
-                  fontSize: 16.0,
-                  fontWeight: FontWeight.bold,
-                ),
+                border: OutlineInputBorder(),
               ),
             ),
             SizedBox(height: 16.0),
@@ -195,11 +142,7 @@ class _EnterDetailScreenState extends State<EnterDetailScreen> {
               controller: _descriptionController,
               decoration: InputDecoration(
                 labelText: 'Description',
-                labelStyle: TextStyle(
-                  color: Colors.black,
-                  fontSize: 16.0,
-                  fontWeight: FontWeight.bold,
-                ),
+                border: OutlineInputBorder(),
               ),
               maxLines: 3,
             ),
@@ -207,56 +150,46 @@ class _EnterDetailScreenState extends State<EnterDetailScreen> {
             TextField(
               controller: _representativeController,
               decoration: InputDecoration(
-                labelText: 'Name of Representative',
-                labelStyle: TextStyle(
-                  color: Colors.black,
-                  fontSize: 16.0,
-                  fontWeight: FontWeight.bold,
-                ),
+                labelText: 'Representative Name',
+                border: OutlineInputBorder(),
               ),
             ),
             SizedBox(height: 16.0),
             TextField(
               controller: _phoneNumberController,
               decoration: InputDecoration(
-                labelText: 'Phone Number of Representative',
-                labelStyle: TextStyle(
-                  color: Colors.black,
-                  fontSize: 16.0,
-                  fontWeight: FontWeight.bold,
-                ),
+                labelText: 'Phone Number',
+                border: OutlineInputBorder(),
               ),
-              keyboardType: TextInputType.phone,
             ),
             SizedBox(height: 16.0),
             TextField(
               controller: _servicesController,
               decoration: InputDecoration(
                 labelText: 'Services Offered',
-                labelStyle: TextStyle(
-                  color: Colors.black,
-                  fontSize: 16.0,
-                  fontWeight: FontWeight.bold,
-                ),
+                border: OutlineInputBorder(),
               ),
               maxLines: 3,
             ),
             SizedBox(height: 16.0),
-            Text(
-              'Number of Stars',
-              style: TextStyle(
-                fontSize: 16.0,
-                fontWeight: FontWeight.bold,
+            TextField(
+              controller: _locationController,
+              decoration: InputDecoration(
+                labelText: 'Location',
+                border: OutlineInputBorder(),
               ),
             ),
-            SizedBox(height: 8.0),
+            SizedBox(height: 16.0),
+            Text(
+              'Rating:',
+              style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold),
+            ),
             RatingBar.builder(
               initialRating: _stars,
-              minRating: 0,
+              minRating: 1,
               direction: Axis.horizontal,
               allowHalfRating: true,
               itemCount: 5,
-              itemSize: 40.0,
               itemBuilder: (context, _) => Icon(
                 Icons.star,
                 color: Colors.amber,
@@ -267,135 +200,51 @@ class _EnterDetailScreenState extends State<EnterDetailScreen> {
                 });
               },
             ),
-            SizedBox(height: 8.0),
-            Text(
-              _stars == 0 ? '' : '$_stars star venue',
-              style: TextStyle(
-                fontSize: 16.0,
-                fontWeight: FontWeight.bold,
-                color: Colors.blue,
-              ),
-            ),
             SizedBox(height: 16.0),
-            Text(
-              'Valet Parking: ${_valetParkingAvailable ? "Available" : "Unavailable"}',
-              style: TextStyle(
-                fontSize: 16.0,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            SizedBox(height: 8.0),
             Row(
-              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                ElevatedButton(
-                  onPressed: () {
-                    setState(() {
-                      _valetParkingAvailable = true;
-                    });
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _valetParkingAvailable ? Colors.green : Colors.grey,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20.0),
-                    ),
-                  ),
-                  child: Text('Available'),
+                Text(
+                  'Valet Parking Available',
+                  style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold),
                 ),
-                SizedBox(width: 8.0),
-                ElevatedButton(
-                  onPressed: () {
+                Switch(
+                  value: _valetParkingAvailable,
+                  onChanged: (value) {
                     setState(() {
-                      _valetParkingAvailable = false;
+                      _valetParkingAvailable = value;
                     });
                   },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _valetParkingAvailable ? Colors.grey : Colors.red,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20.0),
-                    ),
-                  ),
-                  child: Text('Unavailable'),
                 ),
               ],
             ),
             SizedBox(height: 16.0),
-            ElevatedButton(
-              onPressed: _addPicture,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.black,
-              ),
-              child: Text(
-                'Add Picture',
-                style: TextStyle(color: Colors.white),
-              ),
+            Text(
+              'Pictures:',
+              style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold),
             ),
-            SizedBox(height: 16.0),
+            SizedBox(height: 8.0),
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Row(
-                children: [
-                  ..._pictures.map((url) => Padding(
-                    padding: EdgeInsets.only(right: 8.0),
-                    child: _buildPictureWidget(url),
-                  )),
-                ],
+                children: _pictures.map((url) => _buildPictureWidget(url)).toList(),
               ),
             ),
             SizedBox(height: 16.0),
-            Text(
-              'Location',
-              style: TextStyle(
-                fontSize: 16.0,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            SizedBox(height: 8.0),
-            TextField(
-              controller: _locationController,
-              decoration: InputDecoration(
-                labelText: 'Enter your address',
-                labelStyle: TextStyle(
-                  color: Colors.black,
-                  fontSize: 14.0,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-            SizedBox(height: 8.0),
-            Container(
-              height: 200,
-              color: Colors.grey[200],
-              child: Center(
-                child: Text(
-                  'Map',
-                  style: TextStyle(
-                    fontSize: 18.0,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+            ElevatedButton.icon(
+              onPressed: _addPicture,
+              icon: Icon(Icons.add_a_photo),
+              label: Text('Add Picture'),
+              style: ElevatedButton.styleFrom(
+                foregroundColor: Colors.white, backgroundColor: Colors.blueGrey,
               ),
             ),
             SizedBox(height: 16.0),
             ElevatedButton(
               onPressed: _saveVenue,
+              child: Text('Save Venue'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.black,
-              ),
-              child: Text(
-                'Save',
-                style: TextStyle(color: Colors.white),
-              ),
-            ),
-            SizedBox(height: 16.0),
-            ElevatedButton(
-              onPressed: _deleteVenue,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red,
-              ),
-              child: Text(
-                'Delete',
-                style: TextStyle(color: Colors.white),
+                foregroundColor: Colors.white, backgroundColor: Colors.blueGrey,
               ),
             ),
           ],
@@ -403,10 +252,4 @@ class _EnterDetailScreenState extends State<EnterDetailScreen> {
       ),
     );
   }
-}
-
-void main() {
-  runApp(MaterialApp(
-    home: EnterDetailScreen(),
-  ));
 }

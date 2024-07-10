@@ -1,8 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-class VenueDetailsScreen extends StatelessWidget {
-  final CollectionReference venuesCollection = FirebaseFirestore.instance.collection('venues');
+class VenueDetailsScreen extends StatefulWidget {
+  @override
+  _VenueDetailsScreenState createState() => _VenueDetailsScreenState();
+}
+
+class _VenueDetailsScreenState extends State<VenueDetailsScreen> {
+  final CollectionReference venuesCollection =
+  FirebaseFirestore.instance.collection('venues');
 
   @override
   Widget build(BuildContext context) {
@@ -28,7 +34,8 @@ class VenueDetailsScreen extends StatelessWidget {
             return Center(child: CircularProgressIndicator());
           }
 
-          final List<DocumentSnapshot> documents = snapshot.data?.docs ?? [];
+          final List<DocumentSnapshot> documents =
+              snapshot.data?.docs ?? [];
 
           if (documents.isEmpty) {
             return Center(child: Text('No venues found'));
@@ -37,18 +44,74 @@ class VenueDetailsScreen extends StatelessWidget {
           return ListView.builder(
             itemCount: documents.length,
             itemBuilder: (context, index) {
-              final data = documents[index].data() as Map<String, dynamic>;
-              return ListTile(
-                title: Text(data['name'] ?? 'No Name'),
-                subtitle: Text(data['description'] ?? 'No Description'),
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => VenueDetailPage(documentId: documents[index].id),
-                    ),
-                  );
-                },
+              final data =
+              documents[index].data() as Map<String, dynamic>;
+              return Card(
+                margin: EdgeInsets.symmetric(vertical: 10, horizontal: 20),
+                elevation: 3,
+                child: ListTile(
+                  title: Text(
+                    data['name'] ?? 'No Name',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SizedBox(height: 5),
+                      Text(data['description'] ?? 'No Description'),
+                      SizedBox(height: 5),
+                      Text('Representative: ${data['representative'] ?? 'N/A'}'),
+                      SizedBox(height: 5),
+                      Text('Phone Number: ${data['phoneNumber'] ?? 'N/A'}'),
+                      SizedBox(height: 5),
+                      Text('Location: ${data['location'] ?? 'N/A'}'),
+                      SizedBox(height: 5),
+                      Text('Services Offered: ${data['services'] ?? 'N/A'}'),
+                      SizedBox(height: 5),
+                      Row(
+                        children: [
+                          Text(
+                            'Stars: ',
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          Icon(Icons.star, color: Colors.amber, size: 18),
+                          Text('${data['stars']?.toStringAsFixed(1) ?? 'N/A'}'),
+                        ],
+                      ),
+                      SizedBox(height: 5),
+                      Text(
+                        'Valet Parking: ${data['valetParking'] == true ? 'Available' : 'Not Available'}',
+                      ),
+                      SizedBox(height: 5),
+                      Text(
+                        'Pictures:',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      SizedBox(height: 5),
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          children: (data['pictures'] as List<dynamic>?)
+                              ?.map((url) => Padding(
+                            padding: EdgeInsets.only(right: 5),
+                            child: Image.network(
+                              url ?? '',
+                              width: 100,
+                              height: 100,
+                              fit: BoxFit.cover,
+                            ),
+                          ))
+                              .toList() ??
+                              [],
+                        ),
+                      ),
+                    ],
+                  ),
+                  trailing: IconButton(
+                    icon: Icon(Icons.delete),
+                    onPressed: () => _deleteVenue(documents[index].id),
+                  ),
+                ),
               );
             },
           );
@@ -56,137 +119,15 @@ class VenueDetailsScreen extends StatelessWidget {
       ),
     );
   }
-}
 
-class VenueDetailPage extends StatelessWidget {
-  final String documentId;
-
-  VenueDetailPage({required this.documentId});
-
-  @override
-  Widget build(BuildContext context) {
-    final DocumentReference venueDoc = FirebaseFirestore.instance.collection('venues').doc(documentId);
-
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.blueGrey,
-        title: Text(
-          'Venue Detail',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        centerTitle: true,
-      ),
-      body: FutureBuilder<DocumentSnapshot>(
-        future: venueDoc.get(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
-          }
-          if (snapshot.hasError) {
-            return Center(child: Text('Something went wrong'));
-          }
-          if (!snapshot.hasData || !snapshot.data!.exists) {
-            return Center(child: Text('Venue not found'));
-          }
-
-          final data = snapshot.data!.data() as Map<String, dynamic>;
-
-          return SingleChildScrollView(
-            padding: EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: <Widget>[
-                Text(
-                  data['name'] ?? 'No Name',
-                  style: TextStyle(
-                    fontSize: 24.0,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                SizedBox(height: 16.0),
-                Text(
-                  data['description'] ?? 'No Description',
-                  style: TextStyle(
-                    fontSize: 16.0,
-                  ),
-                ),
-                SizedBox(height: 16.0),
-                Text(
-                  'Representative: ${data['representative'] ?? 'No Representative'}',
-                  style: TextStyle(
-                    fontSize: 16.0,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                SizedBox(height: 16.0),
-                Text(
-                  'Phone Number: ${data['phoneNumber'] ?? 'No Phone Number'}',
-                  style: TextStyle(
-                    fontSize: 16.0,
-                  ),
-                ),
-                SizedBox(height: 16.0),
-                Text(
-                  'Services Offered: ${data['services'] ?? 'No Services'}',
-                  style: TextStyle(
-                    fontSize: 16.0,
-                  ),
-                ),
-                SizedBox(height: 16.0),
-                Text(
-                  'Stars: ${data['stars']?.toString() ?? 'No Rating'}',
-                  style: TextStyle(
-                    fontSize: 16.0,
-                  ),
-                ),
-                SizedBox(height: 16.0),
-                Text(
-                  'Valet Parking: ${data['valetParking'] ? 'Available' : 'Unavailable'}',
-                  style: TextStyle(
-                    fontSize: 16.0,
-                  ),
-                ),
-                SizedBox(height: 16.0),
-                Text(
-                  'Location: ${data['location'] ?? 'No Location'}',
-                  style: TextStyle(
-                    fontSize: 16.0,
-                  ),
-                ),
-                SizedBox(height: 16.0),
-                Text(
-                  'Pictures:',
-                  style: TextStyle(
-                    fontSize: 16.0,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                SizedBox(height: 8.0),
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: (data['pictures'] as List<dynamic>?)?.map((url) {
-                      return Padding(
-                        padding: EdgeInsets.only(right: 8.0),
-                        child: Image.network(
-                          url,
-                          width: 100,
-                          height: 100,
-                          fit: BoxFit.cover,
-                        ),
-                      );
-                    }).toList() ??
-                        [],
-                  ),
-                ),
-              ],
-            ),
-          );
-        },
-      ),
-    );
+  void _deleteVenue(String documentId) {
+    venuesCollection.doc(documentId).delete().then((value) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Venue deleted successfully')));
+    }).catchError((error) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to delete venue: $error')));
+    });
   }
 }
+
