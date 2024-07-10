@@ -1,69 +1,90 @@
 import 'package:flutter/material.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
-import 'additional_services.dart'; // Import the additional_services.dart file
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'additional_services.dart'; // Import AdditionalServicesScreen
 
-class ScheduleScreen extends StatelessWidget {
+class ScheduleScreen extends StatefulWidget {
+  final String venueId;
+
+  const ScheduleScreen({Key? key, required this.venueId}) : super(key: key);
+
+  @override
+  _ScheduleScreenState createState() => _ScheduleScreenState();
+}
+
+class _ScheduleScreenState extends State<ScheduleScreen> {
+  late DateTime _selectedDate;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedDate = DateTime.now(); // Initialize selected date with current date
+  }
+
   @override
   Widget build(BuildContext context) {
-    // Calculate half of the screen height
     double halfScreenHeight = MediaQuery.of(context).size.height / 2;
 
     return Scaffold(
       body: CustomScrollView(
         slivers: [
           SliverAppBar(
-            backgroundColor: Colors.blue, // Set app bar background color to blue
+            backgroundColor: Colors.blue,
             title: Text(
-              'Schedule', // Title text
+              'Schedule',
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.bold,
               ),
             ),
-            centerTitle: true, // Center align the title text on the app bar
+            centerTitle: true,
             leading: IconButton(
-              icon: Icon(Icons.arrow_back), // Back icon
+              icon: Icon(Icons.arrow_back),
               onPressed: () {
-                Navigator.pop(context); // Navigate back when back icon is pressed
+                Navigator.pop(context);
               },
             ),
-            floating: true, // App bar will be floating
-            pinned: true, // App bar will be pinned
+            floating: true,
+            pinned: true,
           ),
           SliverToBoxAdapter(
             child: SizedBox(
-              height: halfScreenHeight, // Set height to half of the screen
-              // child: Padding(
-              // padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top + 0),
+              height: halfScreenHeight,
               child: SfCalendar(
                 view: CalendarView.month,
                 firstDayOfWeek: 1,
                 headerStyle: CalendarHeaderStyle(
                   textStyle: TextStyle(
-                    color: Colors.black,  // set the color of the month name
-                    fontSize: 20,  // set the font size of the month name
-                    fontWeight: FontWeight.bold, // set the font weight of the month name
+                    color: Colors.black,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
                   ),
-                  textAlign: TextAlign.center, // center align the month name
+                  textAlign: TextAlign.center,
                 ),
                 viewHeaderStyle: ViewHeaderStyle(
                   dayTextStyle: TextStyle(
-                    color: Colors.grey, // Color for past dates
+                    color: Colors.grey,
                   ),
                 ),
-                // ,initialDisplayDate: ,
-                //   initialSelectedDate:
+                onTap: (CalendarTapDetails details) {
+                  if (details.targetElement == CalendarElement.calendarCell) {
+                    setState(() {
+                      _selectedDate = details.date!;
+                      _bookVenue();
+                    });
+                  }
+                },
               ),
             ),
           ),
           SliverToBoxAdapter(
-            child: SizedBox(height: 10), // Add SizedBox for spacing
+            child: SizedBox(height: 10),
           ),
           SliverToBoxAdapter(
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [ 
+              children: [
                 Text(
                   'My Schedule:',
                   style: TextStyle(
@@ -74,7 +95,7 @@ class ScheduleScreen extends StatelessWidget {
                 ),
                 TextButton(
                   onPressed: () {
-                    // Add onPressed logic for See All button
+                    // Add logic for See All button
                   },
                   child: Text(
                     'See All',
@@ -89,18 +110,18 @@ class ScheduleScreen extends StatelessWidget {
           ),
           SliverFillRemaining(
             child: Container(
-              color: Colors.white, // Example background color
-              // Add additional widgets for more information here
+              color: Colors.white,
+              // Additional widgets can be added here as needed
             ),
           ),
         ],
       ),
       bottomNavigationBar: BottomNavigationBar(
-        backgroundColor: Colors.blue, // Set background color to blue
-        selectedItemColor: Colors.white, // Set selected item color to white
-        unselectedItemColor: Colors.white.withOpacity(0.6), // Set unselected item color with reduced opacity
-        type: BottomNavigationBarType.fixed, // Ensure equal spacing
-        currentIndex: 1, // Index of the calendar screen
+        backgroundColor: Colors.blue,
+        selectedItemColor: Colors.white,
+        unselectedItemColor: Colors.white.withOpacity(0.6),
+        type: BottomNavigationBarType.fixed,
+        currentIndex: 1,
         items: [
           BottomNavigationBarItem(
             icon: Icon(Icons.home),
@@ -109,7 +130,7 @@ class ScheduleScreen extends StatelessWidget {
           BottomNavigationBarItem(
             icon: Icon(
               Icons.calendar_today,
-              color: Colors.white, // Color of the calendar icon
+              color: Colors.white,
             ),
             label: 'Calendar',
           ),
@@ -123,15 +144,37 @@ class ScheduleScreen extends StatelessWidget {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton( // Add FloatingActionButton for the Next button
+      floatingActionButton: FloatingActionButton(
         onPressed: () {
-          Navigator.push( // Navigate to the AdditionalServicesScreen when pressed
+          Navigator.push(
             context,
             MaterialPageRoute(builder: (context) => AdditionalServicesScreen()),
           );
         },
-        child: Icon(Icons.navigate_next), // Icon for the Next button
+        child: Icon(Icons.navigate_next),
       ),
     );
+  }
+
+  void _bookVenue() {
+    // Assuming you have a 'bookings' collection in Firestore
+    CollectionReference bookings =
+    FirebaseFirestore.instance.collection('bookings');
+
+    // Example booking data structure
+    Map<String, dynamic> bookingData = {
+      'venueId': widget.venueId,
+      'bookingDate': _selectedDate,
+      // Additional data can be added as needed
+    };
+
+    // Add booking data to Firestore
+    bookings.add(bookingData).then((value) {
+      // Successfully added booking
+      print('Booking added to Firestore: ${value.id}');
+    }).catchError((error) {
+      // Error adding booking
+      print('Failed to add booking to Firestore: $error');
+    });
   }
 }

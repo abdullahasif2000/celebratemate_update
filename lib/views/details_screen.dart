@@ -106,7 +106,7 @@ class DetailsScreen extends StatelessWidget {
             // Navigate to the ScheduleScreen
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => ScheduleScreen()),
+              MaterialPageRoute(builder: (context) => ScheduleScreen(venueId: '',)),
             );
           },
           child: Text(

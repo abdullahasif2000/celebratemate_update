@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:celebratemate/views/login_screen.dart';
-import 'booking_screen2.dart';
+import 'package:celebratemate/views/schedule.dart'; // Import the ScheduleScreen
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -115,7 +115,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         SizedBox(height: 5),
                         Text('Representative: ${data['representative'] as String? ?? 'N/A'}'),
                         SizedBox(height: 5),
-                        Text('Phone Number: ${data['phoneNumber'] as String? ?? 'N/A'}'),
+                        Text('Phone Number: ${data['phone_number'] ?? 'N/A'}'),
                         SizedBox(height: 5),
                         Text('Location: ${data['location'] as String? ?? 'N/A'}'),
                         SizedBox(height: 5),
@@ -157,6 +157,13 @@ class _HomeScreenState extends State<HomeScreen> {
                                 .toList() ??
                                 [],
                           ),
+                        ),
+                        SizedBox(height: 10),
+                        ElevatedButton(
+                          onPressed: () {
+                            _navigateToScheduleScreen(context, data['id'] as String? ?? ''); // Pass venue ID here
+                          },
+                          child: Text('Book Now'),
                         ),
                       ],
                     ),
@@ -203,5 +210,12 @@ class _HomeScreenState extends State<HomeScreen> {
     } catch (e) {
       print('Error signing out: $e');
     }
+  }
+
+  void _navigateToScheduleScreen(BuildContext context, String venueId) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => ScheduleScreen(venueId: venueId)), // Pass venue ID to ScheduleScreen
+    );
   }
 }
